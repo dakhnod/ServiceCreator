@@ -1,0 +1,72 @@
+#!/bin/bash
+
+if [ "$UID" != "0" ]; then
+	echo "please run as root"
+	exit
+fi
+
+read -p "service name (single word): " unit_file
+read -p "executable path and parameters: " unit_exec
+read -p "Decription: " unit_description
+read -p "enable (run at boot)? (yes/no): " unit_enable
+read -p "start service? (yes/no): " unit_start
+read -p "restart (on error) (always/no): " unit_restart
+
+function print_unit() {
+	echo "[Unit]"
+	echo "Description=$2"
+	echo
+	echo "[Service]"
+	echo "Restart=$3"
+	echo "ExecStart=$1"
+	echo "RestartSec=1"
+	echo 
+	echo "[Install]"
+	echo "WantedBy=multi-user.target"
+}
+
+contents=`print_unit "$unit_exec" "$unit_description" "${unit_restart:-always}"`
+
+echo -e "unit file:\n\n$contents\n"
+file_path="/etc/systemd/system/$unit_file.service"
+
+echo "saving to $file_path"
+
+if [ -f "$file_path" ]; then
+	read -p "file exists. overwrite? (yes/no)" overwrite
+	if [ "$overwrite" != "yes" ]; then
+		exit
+	fi
+	restart=true
+fi
+
+echo "$contents" > $file_path
+
+read -p "open system file for editing? (yes/no):" open
+if [ "$open" == "yes" ]; then
+	${EDITOR:-nano} $file_path
+fi
+
+echo "reloading daemon files"
+systemctl daemon-reload
+
+if [ "${unit_enable:-yes}" == "yes" ]; then
+	echo "enabling unit file"
+	systemctl enable "$unit_file"
+else
+	echo "disabling unit file"
+	systemctl disable "$unit_file"
+fi
+
+if [ "${unit_start:-yes}" == "yes" ]; then
+	if $restart ; then
+		echo "restarting service"
+		systemctl restart "$unit_file"
+	else
+		echo "starting service"
+		systemctl start "$unit_file"
+	fi
+fi
+
+systemctl status "$unit_file"
+
