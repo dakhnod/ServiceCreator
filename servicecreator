@@ -8,9 +8,9 @@ fi
 read -p "service name (single word): " unit_file
 read -p "executable path and parameters: " unit_exec
 read -p "Decription: " unit_description
-read -p "enable (run at boot)? (yes/no): " unit_enable
-read -p "start service? (yes/no): " unit_start
-read -p "restart (on error) (always/no): " unit_restart
+read -p "enable (run at boot)? (yes/no): " -e -i "yes" unit_enable
+read -p "start service? (yes/no): " -e -i "yes" unit_start
+read -p "restart (on error) (always/no): " -e -i "always" unit_restart
 
 function print_unit() {
 	echo "[Unit]"
@@ -42,7 +42,7 @@ fi
 
 echo "$contents" > $file_path
 
-read -p "open system file for editing? (yes/no): " open
+read -p "open system file for editing? (yes/no): " -e -i "no" open
 if [ "$open" == "yes" ]; then
 	${EDITOR:-nano} $file_path
 fi
